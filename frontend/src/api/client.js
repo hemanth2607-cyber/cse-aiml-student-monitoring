@@ -1,11 +1,17 @@
 import axios from "axios";
 
-// 1. Get the base backend URL. If it's missing, fall back to localhost
-const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// 1. Get the base backend URL supporting both VITE_API_BASE_URL and VITE_API_URL
+const rawApiUrl =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000";
+
+// Ensure clean URL without duplicate trailing slashes or duplicate /api/v1
+const cleanBase = rawApiUrl.replace(/\/api\/v1\/?$/, "").replace(/\/+$/, "");
+const apiBase = `${cleanBase}/api/v1`;
 
 const api = axios.create({
-  // 2. This automatically appends /api/v1 so you don't have to put it in Vercel
-  baseURL: `${apiBase}/api/v1`,
+  baseURL: apiBase,
   headers: {
     "Content-Type": "application/json",
   },

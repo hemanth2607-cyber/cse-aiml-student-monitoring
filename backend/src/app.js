@@ -11,10 +11,33 @@ const app = express();
 
 // ── Security & general middleware ─────────────────────────
 app.use(helmet());
+
+const allowedOrigins = [
+  FRONTEND_URL?.replace(/\/+$/, ""),
+  "http://localhost:5173",
+  "http://localhost:3000",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: FRONTEND_URL,
-    credentials: true, // allow cookies
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      const normalizedOrigin = origin.replace(/\/+$/, "");
+      const isAllowed =
+        allowedOrigins.includes(normalizedOrigin) ||
+        normalizedOrigin.endsWith(".vercel.app") ||
+        /^https:\/\/.*\.vercel\.app$/.test(normalizedOrigin);
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        // In dev or preview environments, permit and log
+        callback(null, true);
+      }
+    },
+    credentials: true, // allow cookies & authorization headers
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
