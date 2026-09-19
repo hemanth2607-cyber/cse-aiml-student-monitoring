@@ -31,6 +31,25 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Database connectivity / Prisma initialization errors
+  const isDbError =
+    err.name === "PrismaClientInitializationError" ||
+    (err.message &&
+      (err.message.includes("FATAL: (ENOTFOUND)") ||
+        err.message.includes("Can't reach database server") ||
+        err.message.includes("ECONNREFUSED") ||
+        err.message.includes("tenant/user")));
+
+  if (isDbError) {
+    console.error("❌ Database connection error:", err.message);
+    return res.status(503).json({
+      success: false,
+      message:
+        "Database is currently unavailable. If using Supabase, please ensure your project is active (unpause it in the Supabase dashboard) or check your DATABASE_URL in .env.",
+      data: null,
+    });
+  }
+
   // Any other error
   console.error("❌ Error:", err);
   const statusCode = res.statusCode !== 200 ? res.statusCode : 500;

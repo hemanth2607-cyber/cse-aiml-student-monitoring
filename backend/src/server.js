@@ -27,19 +27,18 @@ const shutdownGracefully = async (signal) => {
 };
 
 const start = async () => {
-  try {
-    // Verify DB connection
-    await prisma.$connect();
-    console.log("✅ Database connected (Supabase Postgres)");
-  } catch (err) {
-    console.error("❌ Database connection failed:", err);
-    process.exit(1);
-  }
-
   server.listen(PORT, () => {
     console.log(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
     console.log(`📚 API base: http://localhost:${PORT}/api/v1`);
   });
+
+  try {
+    // Verify DB connection
+    await prisma.$connect();
+    console.log("✅ Database connected successfully");
+  } catch (err) {
+    console.error("⚠️ Database connection failed (check your Supabase project status or DATABASE_URL):", err.message || err);
+  }
 };
 
 // Handle shutdown signals

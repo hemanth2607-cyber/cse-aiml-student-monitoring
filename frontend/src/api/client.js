@@ -32,11 +32,22 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url || "";
+    const isAuthEndpoint =
+      url.includes("/auth/student-login") ||
+      url.includes("/auth/admin-login") ||
+      url.includes("/auth/verify-otp") ||
+      url.includes("/auth/send-otp") ||
+      url.includes("/auth/register");
+
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem("token");
       sessionStorage.removeItem("token");
       document.cookie = "access_token=; Max-Age=0; path=/";
-      window.location.href = "/login";
+      const currentPath = window.location.pathname;
+      if (!currentPath.startsWith("/login") && currentPath !== "/" && currentPath !== "/verify") {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

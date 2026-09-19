@@ -1,0 +1,219 @@
+// ─────────────────────────────────────────────────────────────
+// Prisma schema for local SQLite development
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// USER (holds both students and admins)
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  password          String?  // Only for default admin / manually created admins
+  role              String   @default("STUDENT") // STUDENT, ADMIN
+  emailVerified     Boolean  @default(false)
+  username          String?  // Student profile
+  year              String?  // e.g. "2nd Year"
+  leetcodeUsername   String?  @unique
+  githubUsername    String?  @unique
+  githubAccessToken String?  // Encrypted GitHub OAuth token
+  profileComplete   Boolean  @default(false)
+
+  dailyCompletions  Completion[]
+  registrations     Registration[]
+  impositions       Imposition[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Reverse relations for content created by this user (admin)
+  dailyChallenges   DailyChallenge[] @relation("UserDailyChallenges")
+  hackathons        Hackathon[]      @relation("UserHackathons")
+  internships       Internship[]     @relation("UserInternships")
+  courses           Course[]         @relation("UserCourses")
+  adminTasks        Task[]           @relation("AdminTasks")
+  taskCompletions   TaskCompletion[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────
+// DAILY LEETCODE CHALLENGE
+// ─────────────────────────────────────────────────────────────
+
+model DailyChallenge {
+  id             String   @id @default(cuid())
+  leetcodeNumber Int
+  leetcodeTitle  String
+  leetcodeSlug   String?
+  startTime      DateTime
+  endTime        DateTime
+  createdBy      String
+  createdAt      DateTime @default(now())
+
+  completions    Completion[]
+  creator        User     @relation("UserDailyChallenges", fields: [createdBy], references: [id])
+
+  @@map("daily_challenges")
+}
+
+// ─────────────────────────────────────────────────────────────
+// COMPLETION
+// ─────────────────────────────────────────────────────────────
+
+model Completion {
+  id          String    @id @default(cuid())
+  studentId   String
+  challengeId String
+  status      String    @default("PENDING") // PENDING, COMPLETED, NOT_COMPLETED
+  language    String?
+  completedAt DateTime?
+
+  student     User           @relation(fields: [studentId], references: [id])
+  challenge   DailyChallenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([studentId, challengeId])
+  @@map("completions")
+}
+
+// ─────────────────────────────────────────────────────────────
+// HACKATHONS
+// ─────────────────────────────────────────────────────────────
+
+model Hackathon {
+  id                String   @id @default(cuid())
+  title             String
+  description       String
+  link              String
+  previewImage      String?
+  registrationStart DateTime
+  registrationEnd   DateTime
+  price             Float?   @default(0)
+  isFree            Boolean  @default(true)
+  createdBy         String
+  createdAt         DateTime @default(now())
+
+  creator           User     @relation("UserHackathons", fields: [createdBy], references: [id])
+
+  @@map("hackathons")
+}
+
+// ─────────────────────────────────────────────────────────────
+// INTERNSHIPS
+// ─────────────────────────────────────────────────────────────
+
+model Internship {
+  id               String   @id @default(cuid())
+  title            String
+  description      String
+  link             String
+  previewImage     String?
+  applicationStart DateTime
+  applicationEnd   DateTime
+  duration         String?
+  hasStipend       Boolean  @default(false)
+  stipendAmount    String?
+  createdBy        String
+  createdAt        DateTime @default(now())
+
+  creator          User     @relation("UserInternships", fields: [createdBy], references: [id])
+
+  @@map("internships")
+}
+
+// ─────────────────────────────────────────────────────────────
+// COURSES
+// ─────────────────────────────────────────────────────────────
+
+model Course {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  link         String
+  previewImage String?
+  courseStart  DateTime
+  courseEnd    DateTime
+  benefit      String?
+  createdBy    String
+  createdAt    DateTime @default(now())
+
+  creator      User     @relation("UserCourses", fields: [createdBy], references: [id])
+
+  @@map("courses")
+}
+
+// ─────────────────────────────────────────────────────────────
+// REGISTRATION
+// ─────────────────────────────────────────────────────────────
+
+model Registration {
+  id           String   @id @default(cuid())
+  studentId    String
+  eventType    String   // HACKATHON, INTERNSHIP, COURSE
+  eventId      String
+  registeredAt DateTime @default(now())
+
+  student      User     @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, eventType, eventId])
+  @@map("registrations")
+}
+
+// ─────────────────────────────────────────────────────────────
+// IMPOSITIONS
+// ─────────────────────────────────────────────────────────────
+
+model Imposition {
+  id          String   @id @default(cuid())
+  studentId   String
+  reason      String
+  description String?
+  imposedAt   DateTime @default(now())
+  isSent      Boolean  @default(false)
+
+  student     User     @relation(fields: [studentId], references: [id])
+
+  @@map("impositions")
+}
+
+// ─────────────────────────────────────────────────────────────
+// TASKS
+// ─────────────────────────────────────────────────────────────
+
+model Task {
+  id          String           @id @default(cuid())
+  title       String
+  description String
+  thumbnail   String?
+  startTime   DateTime?
+  endTime     DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  createdBy   String
+  admin       User             @relation("AdminTasks", fields: [createdBy], references: [id])
+  completions TaskCompletion[]
+}
+
+model TaskCompletion {
+  id          String    @id @default(cuid())
+  taskId      String
+  studentId   String
+  status      String    @default("PENDING")
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  student     User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, studentId])
+  @@index([studentId])
+  @@index([taskId])
+}

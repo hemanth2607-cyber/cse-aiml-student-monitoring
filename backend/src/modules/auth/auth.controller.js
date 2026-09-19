@@ -101,16 +101,23 @@ const githubOAuthCallback = asyncHandler(async (req, res) => {
     return res.redirect(`${process.env.FRONTEND_URL}/student?error=github_failed`);
   }
 
-  const parsedState = JSON.parse(Buffer.from(state, "base64").toString());
+  const frontendBase = process.env.FRONTEND_URL || "http://localhost:5173";
+  let parsedState = {};
+  try {
+    parsedState = JSON.parse(Buffer.from(state, "base64").toString());
+  } catch {
+    return res.redirect(`${frontendBase}/student?error=github_failed`);
+  }
+
   const result = await authService.linkGithubViaOAuth(code, parsedState.targetUserId);
   const redirectPath = parsedState.redirectPath || "/student";
   const targetStudentId = parsedState.targetUserId;
 
   if (!result.success) {
-    return res.redirect(`${process.env.FRONTEND_URL}${redirectPath}?error=github_failed&studentId=${targetStudentId}`);
+    return res.redirect(`${frontendBase}${redirectPath}?error=github_failed&studentId=${targetStudentId}`);
   }
 
-  return res.redirect(`${process.env.FRONTEND_URL}${redirectPath}?github=linked&studentId=${targetStudentId}`);
+  return res.redirect(`${frontendBase}${redirectPath}?github=linked&studentId=${targetStudentId}`);
 });
 
 const logout = asyncHandler(async (req, res) => {

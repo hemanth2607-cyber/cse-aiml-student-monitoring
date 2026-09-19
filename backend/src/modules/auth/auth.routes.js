@@ -38,7 +38,9 @@ router.get(
       sameSite: "Lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    res.redirect(`${process.env.FRONTEND_URL}/student?token=${token}`);
+    const frontendBase = process.env.FRONTEND_URL || "http://localhost:5173";
+    const redirectPath = user?.role === "ADMIN" ? "/admin" : "/student";
+    res.redirect(`${frontendBase}${redirectPath}?token=${token}`);
   }
 );
 
